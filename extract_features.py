@@ -3,10 +3,21 @@ from pathlib import Path
 import random
 import numpy as np
 
-MIN_NOISE_FROM_PREV = 0.008  # In paper: 0.4
-MAX_MOISE_FROM_PREV = 0.04  # In paper: 0.8
+MIN_NOISE_FROM_PREV_ANG = 0.008  # In paper: 0.4
+MAX_NOISE_FROM_PREV_ANG = 0.04  # In paper: 0.8
+
+MIN_NOISE_FROM_PREV_SPE = 0.01  # In paper: 0.4
+MAX_NOISE_FROM_PREV_SPE = 0.2  # In paper: 0.8
+
+MIN_NOISE_FROM_PREV_TOR = 0.008  # In paper: 0.4
+MAX_NOISE_FROM_PREV_TOR = 0.04  # In paper: 0.8
+
 MIN_NOISE_INTERVAL = 2  # In paper: 5
 MAX_NOISE_INTERVAL = 3  # In paper: 12
+
+USE_ANGLE = True
+USE_SPEED = True
+USE_TORQUE = True
 
 
 def read_data(path, feature):
@@ -42,6 +53,15 @@ def save_data(csv_data, dir_name, feature):
 
 
 def add_noise(csv_data, feature):
+    if feature == 'angle':
+        min_noise_from_prev = MIN_NOISE_FROM_PREV_ANG
+        max_noise_from_prev = MAX_NOISE_FROM_PREV_ANG
+    elif feature == 'speed':
+        min_noise_from_prev = MIN_NOISE_FROM_PREV_SPE
+        max_noise_from_prev = MAX_NOISE_FROM_PREV_SPE
+    elif feature == 'torque':
+        min_noise_from_prev = MIN_NOISE_FROM_PREV_TOR
+        max_noise_from_prev = MAX_NOISE_FROM_PREV_TOR
     random_interval = random.randint(MIN_NOISE_INTERVAL, MAX_NOISE_INTERVAL)
     i = 0
     index_to_add = random_interval
@@ -50,8 +70,8 @@ def add_noise(csv_data, feature):
         if i == index_to_add:
             previous = csv_data.iloc[index_to_add - 1][feature]
 
-            new = random.choice([np.random.uniform(previous - MAX_MOISE_FROM_PREV, previous - MIN_NOISE_FROM_PREV),
-                                       np.random.uniform(previous + MIN_NOISE_FROM_PREV, previous + MAX_MOISE_FROM_PREV)])
+            new = random.choice([np.random.uniform(previous - max_noise_from_prev, previous - min_noise_from_prev),
+                                       np.random.uniform(previous + min_noise_from_prev, previous + max_noise_from_prev)])
             new_line = pd.DataFrame([{feature: new,  'flag': 1}], index=[index_to_add])
             csv_data = pd.concat([csv_data.iloc[:index_to_add], new_line, csv_data.iloc[index_to_add:]]).reset_index(
                 drop=True)
@@ -66,25 +86,26 @@ path_to = './data-features-extracted'
 data1_from = './data-noise-added/data1_with_noise.csv'
 data2_from = './data-noise-added/data2_with_noise.csv'
 
-data1_angle = read_data(data1_from, 'angle')
-data2_angle = read_data(data2_from, 'angle')
-tot_angle = pd.concat([data1_angle, data2_angle], ignore_index=True)
-tot_angle = add_noise(tot_angle, 'angle')
+if USE_ANGLE:
+    data1_angle = read_data(data1_from, 'angle')
+    data2_angle = read_data(data2_from, 'angle')
+    tot_angle = pd.concat([data1_angle, data2_angle], ignore_index=True)
+    tot_angle = add_noise(tot_angle, 'angle')
+    angle_extracted = make_delayed_data(tot_angle, 'angle')
+    save_data(angle_extracted, path_to, 'angle')
 
-data1_torque = read_data(data1_from, 'torque')
-data2_torque = read_data(data2_from, 'torque')
-tot_torque = pd.concat([data1_torque, data2_torque], ignore_index=True)
-tot_torque = add_noise(tot_torque, 'torque')
+if USE_TORQUE:
+    data1_torque = read_data(data1_from, 'torque')
+    data2_torque = read_data(data2_from, 'torque')
+    tot_torque = pd.concat([data1_torque, data2_torque], ignore_index=True)
+    tot_torque = add_noise(tot_torque, 'torque')
+    torque_extracted = make_delayed_data(tot_torque, 'torque')
+    save_data(torque_extracted, path_to, 'torque')
 
-data1_speed = read_data(data1_from, 'speed')
-data2_speed = read_data(data2_from, 'speed')
-tot_speed = pd.concat([data1_speed, data2_speed], ignore_index=True)
-tot_speed = add_noise(tot_speed, 'speed')
-
-angle_extracted = make_delayed_data(tot_angle, 'angle')
-torque_extracted = make_delayed_data(tot_torque, 'torque')
-speed_extracted = make_delayed_data(tot_speed, 'speed')
-
-save_data(angle_extracted, path_to, 'angle')
-save_data(torque_extracted, path_to, 'torque')
-save_data(speed_extracted, path_to, 'speed')
+if USE_SPEED:
+    data1_speed = read_data(data1_from, 'speed')
+    data2_speed = read_data(data2_from, 'speed')
+    tot_speed = pd.concat([data1_speed, data2_speed], ignore_index=True)
+    tot_speed = add_noise(tot_speed, 'speed')
+    speed_extracted = make_delayed_data(tot_speed, 'speed')
+    save_data(speed_extracted, path_to, 'speed')

@@ -5,6 +5,10 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
+USE_ANGLE = 0
+USE_SPEED = 1
+USE_TORQUE = 0
+
 
 def read_data(dir_name, feature):
     suffix = '.csv'
@@ -33,20 +37,21 @@ params_to_test = ['f(t)', ['f(t)', 'f(t-1)'], ['f(t)', 'f(t-1)', 'f(t-2)', 'f(t-
                   ['f(t)-f(t-1)', 'f(t)-f(t-2)', 'f(t)-f(t-3)']]
 
 for feature in features:
-    data = read_data(dir_from, feature)
-    for param in params_to_test:
-        x, y = data[param], data['flag']
-        xtrain, xtest, ytrain, ytest = train_test_split(x, y, test_size=0.33, random_state=15)
+    if feature == 'angle' and USE_ANGLE or feature == 'torque' and USE_TORQUE or feature == 'speed' and USE_SPEED:
+        data = read_data(dir_from, feature)
+        for param in params_to_test:
+            x, y = data[param], data['flag']
+            xtrain, xtest, ytrain, ytest = train_test_split(x, y, test_size=0.33, random_state=15)
 
-        xgbc = XGBClassifier(learning_rate=0.1, n_estimators=1000, max_depth=15,
-                             use_label_encoder=False,
-                             eval_metric='logloss')
+            xgbc = XGBClassifier(learning_rate=0.1, n_estimators=1000, max_depth=15,
+                                 use_label_encoder=False,
+                                 eval_metric='logloss')
 
-        xgbc.fit(xtrain, ytrain)
+            xgbc.fit(xtrain, ytrain)
 
-        y_pred = xgbc.predict(xtest)
-        accuracy = accuracy_score(ytest, y_pred)
-        print(feature, param, ':', accuracy)
+            y_pred = xgbc.predict(xtest)
+            accuracy = accuracy_score(ytest, y_pred)
+            print(feature, param, ':', accuracy)
 '''
 x, y = data[['f(t)', 'f(t-1)']], data[y_columns]
 
